@@ -1,0 +1,1134 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>南京市重点商业项目地图 (2025年)</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css" />
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet-measure@2.1.7/dist/leaflet-measure.css">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+
+        :root {
+            --primary-color: #007bff;
+            --primary-hover-color: #0056b3;
+            --danger-color: #dc3545;
+            --danger-hover-color: #c82333;
+            --secondary-color: #6c757d;
+            --secondary-hover-color: #5a6268;
+            --light-gray-color: #f8f9fa;
+            --medium-gray-color: #e9ecef;
+            --dark-gray-color: #6c757d;
+            --font-color: #343a40;
+            --font-color-light: #6c757d;
+            --background-color: #ffffff;
+            --border-radius: 8px;
+            --box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+            --transition-speed: 0.3s;
+        }
+
+        body, html {
+            margin: 0;
+            padding: 0;
+            height: 100%;
+            width: 100%;
+            font-family: 'Inter', 'Helvetica Neue', Arial, sans-serif;
+            background-color: #f4f4f4;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }
+
+        #map {
+            height: 100%;
+            width: 100%;
+            z-index: 1;
+        }
+
+        /* General Info Box Styling (for Legend and Title) */
+        .info {
+            padding: 12px 15px;
+            background: var(--background-color);
+            box-shadow: var(--box-shadow);
+            border-radius: var(--border-radius);
+            line-height: 1.6;
+            color: var(--font-color);
+            font-size: 14px;
+            cursor: move;
+            user-select: none;
+        }
+        
+        /* Info Box Header for Dragging */
+        .info h4 {
+            cursor: move;
+            user-select: none;
+            margin: 0 0 10px;
+            color: var(--font-color);
+            font-weight: 600;
+            font-size: 16px;
+            border-bottom: 1px solid var(--medium-gray-color);
+            padding-bottom: 8px;
+        }
+
+        .info h4 {
+            margin: 0 0 10px;
+            color: var(--font-color);
+            font-weight: 600;
+            font-size: 16px;
+            border-bottom: 1px solid var(--medium-gray-color);
+            padding-bottom: 8px;
+        }
+
+        /* Legend Specifics */
+        .legend i {
+            width: 18px;
+            height: 18px;
+            float: left;
+            margin-right: 8px;
+            border-radius: 50%;
+            opacity: 0.9;
+        }
+        .legend .project-grade {
+            margin-bottom: 4px;
+        }
+
+        /* Popup Styling */
+        .popup-content {
+            max-width: 300px;
+            font-size: 14px;
+            line-height: 1.7;
+        }
+        .popup-content b {
+            font-weight: 600;
+            color: var(--font-color);
+        }
+
+        .project-grade {
+            display: inline-block;
+            padding: 3px 8px;
+            border-radius: 12px;
+            color: white;
+            font-weight: 500;
+            font-size: 12px;
+            margin: 4px 0;
+        }
+
+        .grade-Aplus { background-color: #d73027; }
+        .grade-A { background-color: #f46d43; }
+        .grade-Aminus { background-color: #fdae61; }
+        .grade-B { background-color: #4575b4; }
+        .grade-C { background-color: #abd9e9; color: #333; }
+        .grade-none { background-color: #e0e0e0; color: #555; }
+
+        /* Main Control Panel */
+        #radius-control {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background: var(--background-color);
+            padding: 20px;
+            border-radius: var(--border-radius);
+            z-index: 1000;
+            box-shadow: var(--box-shadow);
+            width: 280px;
+            max-height: calc(100vh - 20px);
+            display: flex;
+            flex-direction: column;
+            transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+            cursor: move;
+            user-select: none;
+        }
+        
+        /* Draggable Window Header */
+        .control-header {
+            cursor: move;
+            user-select: none;
+        }
+        
+        /* Reset Button */
+        .reset-btn {
+            background: var(--danger-color) !important;
+            color: white !important;
+            border: none;
+            border-radius: 6px;
+            padding: 10px 15px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 600;
+            margin-top: 10px;
+            transition: background-color var(--transition-speed);
+        }
+        .reset-btn:hover {
+            background: var(--danger-hover-color) !important;
+        }
+
+        .control-header {
+            text-align: center;
+            margin-bottom: 15px;
+            padding-bottom: 15px;
+            border-bottom: 1px solid var(--medium-gray-color);
+        }
+        .header-top {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 5px;
+        }
+        .control-title {
+            font-size: 18px;
+            font-weight: 700;
+            color: var(--font-color);
+            margin: 0;
+        }
+        .toggle-btn {
+            background: var(--secondary-color);
+            color: white;
+            border: none;
+            border-radius: 4px;
+            width: 24px;
+            height: 24px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: bold;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: background-color var(--transition-speed);
+        }
+        .toggle-btn:hover {
+            background: var(--secondary-hover-color);
+        }
+        .control-subtitle {
+            font-size: 13px;
+            color: var(--font-color-light);
+            margin: 5px 0 0;
+        }
+
+        /* 优化后的隐藏功能样式 */
+        #radius-control .toggle-btn::before {
+            content: '✕';
+            font-weight: normal;
+        }
+
+        #radius-control input, #radius-control select {
+            width: 100%;
+            box-sizing: border-box;
+            margin-bottom: 10px;
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 6px;
+            font-size: 14px;
+            transition: border-color var(--transition-speed), box-shadow var(--transition-speed);
+        }
+        #radius-control input:focus, #radius-control select:focus {
+            outline: none;
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.25);
+        }
+
+        #radius-control button {
+            width: 100%;
+            box-sizing: border-box;
+            margin-bottom: 10px;
+            cursor: pointer;
+            padding: 12px;
+            border: none;
+            border-radius: 6px;
+            font-size: 15px;
+            font-weight: 600;
+            color: white;
+            background-color: var(--primary-color);
+            transition: background-color var(--transition-speed), transform var(--transition-speed);
+        }
+        #radius-control button:hover {
+            background-color: var(--primary-hover-color);
+            transform: translateY(-1px);
+        }
+
+        /* Tab Container */
+        .tab-container {
+            display: flex;
+            margin-bottom: 15px;
+            background-color: var(--light-gray-color);
+            border-radius: 6px;
+            padding: 4px;
+        }
+        .tab-btn {
+            flex: 1;
+            padding: 8px 10px;
+            background: transparent;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--font-color-light);
+            transition: background-color var(--transition-speed), color var(--transition-speed);
+        }
+        .tab-btn.active {
+            background-color: var(--background-color);
+            color: var(--primary-color);
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+
+        /* Records Section */
+        #records-section {
+            margin-top: 10px;
+            flex-grow: 1;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+        .records-list {
+            flex-grow: 1;
+            overflow-y: auto;
+            padding-right: 5px; /* For scrollbar */
+        }
+        #no-records {
+            text-align: center;
+            padding: 40px 20px;
+            color: var(--font-color-light);
+            font-size: 14px;
+            line-height: 1.6;
+        }
+        
+        .records-stats {
+            font-size: 12px;
+            color: var(--font-color-light);
+            text-align: center;
+            margin-bottom: 10px;
+            padding: 5px;
+            background: var(--light-gray-color);
+            border-radius: 4px;
+        }
+        .records-stats span {
+            font-weight: 600;
+            color: var(--font-color);
+        }
+
+        .record-item {
+            background: var(--background-color);
+            border: 1px solid var(--medium-gray-color);
+            border-left-width: 4px;
+            border-radius: 6px;
+            padding: 12px;
+            margin-bottom: 10px;
+            font-size: 13px;
+            transition: box-shadow var(--transition-speed);
+        }
+        .record-item:hover {
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+        }
+
+        .record-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 8px;
+        }
+        .record-title {
+            font-weight: 700;
+            font-size: 15px;
+        }
+        .record-delete {
+            background: var(--danger-color);
+            color: white;
+            border: none;
+            border-radius: 4px;
+            padding: 4px 8px;
+            cursor: pointer;
+            font-size: 12px;
+            font-weight: 500;
+            transition: background-color var(--transition-speed);
+        }
+        .record-delete:hover {
+            background: var(--danger-hover-color);
+        }
+
+        .record-info {
+            color: var(--font-color-light);
+            line-height: 1.6;
+        }
+        .record-info strong {
+            color: var(--font-color);
+            font-weight: 500;
+        }
+        .record-info details summary {
+            cursor: pointer;
+            font-weight: 500;
+            color: var(--secondary-color);
+            outline: none;
+        }
+        .record-info details[open] summary {
+            color: var(--primary-color);
+        }
+
+        .clear-all-btn {
+            background: var(--secondary-color) !important;
+            color: white !important;
+            margin-top: 10px;
+        }
+        .clear-all-btn:hover {
+            background: var(--secondary-hover-color) !important;
+        }
+        
+        /* Leaflet Measure Control Customization */
+        .leaflet-control-measure {
+            border-radius: var(--border-radius) !important;
+            box-shadow: var(--box-shadow) !important;
+        }
+        .leaflet-control-measure .leaflet-control-measure-toggle,
+        .leaflet-control-measure .leaflet-control-measure-toggle:hover {
+            border-radius: var(--border-radius) !important;
+        }
+        
+        /* Radius Mode Prompt */
+        #radius-mode-prompt {
+            position: absolute;
+            bottom: 30px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 2000;
+            background-color: rgba(0, 0, 0, 0.75);
+            color: white;
+            padding: 10px 20px;
+            border-radius: 30px;
+            font-size: 14px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.3);
+        }
+
+    </style>
+</head>
+<body>
+    <div id="map"></div>
+
+    <div id="radius-control">
+        <div class="control-header">
+            <div class="header-top">
+                <h3 class="control-title">范围查询工具</h3>
+                <button id="toggle-control" class="toggle-btn" title="隐藏控制面板"></button>
+            </div>
+            <p class="control-subtitle">点击地图任意位置创建查询范围，分析周边商业分布</p>
+        </div>
+        
+        <input type="number" id="radius-input" value="1" min="0.1" step="0.1" title="输入半径" placeholder="输入查询半径">
+        <select id="radius-unit" title="选择单位">
+            <option value="kilometers">公里 (km)</option>
+            <option value="meters">米 (m)</option>
+        </select>
+        <button id="radius-button">🎯 开始范围查询</button>
+        
+        <div id="records-section">
+            <div class="tab-container">
+                <button class="tab-btn active" id="current-tab">当前范围</button>
+                <button class="tab-btn" id="history-tab">历史记录</button>
+            </div>
+            
+            <div class="records-stats" id="records-stats" style="display: none;">
+                <span id="total-records">0</span> 个查询记录 | 共发现 <span id="total-malls">0</span> 个商场
+            </div>
+            
+            <div class="records-list" id="records-list">
+                <div id="no-records">暂无查询记录<br>点击上方按钮开始范围查询</div>
+            </div>
+            <button class="clear-all-btn" id="clear-all-btn" style="display: none;">🗑️ 清除所有记录</button>
+        </div>
+    </div>
+    
+    <script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/leaflet.chinesetmsproviders@1.0.22/src/leaflet.ChineseTmsProviders.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/leaflet-measure@2.1.7/dist/leaflet-measure.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/leaflet-measure@2.1.7/dist/leaflet-measure.cn.js"></script>
+    <script>
+        // 创建地图实例，设置中心点和缩放级别
+        var map = L.map("map").setView([32.06, 118.78], 12);
+        
+        // 添加高德地图图层
+        L.tileLayer.chinaProvider('GaoDe.Normal.Map', {
+            maxZoom: 18,
+            minZoom: 10,
+            attribution: '高德地图'
+        }).addTo(map);
+        
+        // --- 数据和配置 ---
+        const districtStyles = {
+            "新街口商圈": { color: "#e41a1c", name: "新街口" },
+            "夫子庙商圈": { color: "#377eb8", name: "夫子庙" },
+            "元通商圈":   { color: "#4daf4a", name: "元通" },
+            "江东商圈":   { color: "#ff7f00", name: "江东" },
+            "江北商圈":   { color: "#ffd700", name: "江北" },
+            "桥北商圈":   { color: "#ffff33", name: "桥北" },
+            "百家湖商圈": { color: "#a65628", name: "百家湖" },
+            "仙林商圈":   { color: "#999999", name: "仙林" },
+            "浦口商圈":   { color: "#984ea3", name: "浦口" },
+            "玄武商圈":   { color: "#e41a1c", name: "玄武" }, // Re-using color for example
+            "中央门商圈": { color: "#000000", name: "中央门" },
+            "迈皋桥商圈": { color: "#00ffff", name: "迈皋桥" },
+            "六合区商圈": { color: "#ff69b4", name: "六合区" },
+            "溧水区商圈": { color: "#8a2be2", name: "溧水区" },
+            "高淳区商圈": { color: "#dc143c", name: "高淳区" },
+            "栖霞区商圈": { color: "#228b22", name: "栖霞区" },
+            "雨花台商圈": { color: "#ff1493", name: "雨花台" }
+        };
+
+        // --- 核心功能：地图初始化和标记 --- 
+
+        // 动态创建带颜色的 SVG 图标
+        function createColoredIcon(color) {
+            const svgIcon = window.btoa(`
+                <svg width="25" height="41" viewBox="0 0 25 41" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M12.5 0C5.596 0 0 5.596 0 12.5C0 19.404 5.596 25 12.5 25C19.404 25 25 19.404 25 12.5C25 5.596 19.404 0 12.5 0Z" fill="${color}"/>
+                    <path d="M12.5 35.5C18.299 35.5 23 30.799 23 25H2C2 30.799 6.701 35.5 12.5 35.5Z" fill="${color}"/>
+                    <circle cx="12.5" cy="12.5" r="6" fill="#ffffff"/>
+                </svg>
+            `);
+
+            return L.icon({
+                iconUrl: `data:image/svg+xml;base64,${svgIcon}`,
+                shadowUrl: "https://cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.7/images/marker-shadow.png",
+                iconSize: [25, 41],
+                iconAnchor: [12, 41],
+                popupAnchor: [1, -34],
+                shadowSize: [41, 41]
+            });
+        }
+
+        // 为每个商圈风格生成图标实例
+        for (const key in districtStyles) {
+            districtStyles[key].icon = createColoredIcon(districtStyles[key].color);
+        }
+
+        // 南京商业项目数据
+        var nanjing_malls = [
+            // 新街口商圈
+            {name: "南京德基广场", lat: 32.044077, lng: 118.784902, address: "中山路18号", desc: "商业体量达31万方，是新街口'群雄之首'。2023年销售额约239亿元，仅次于北京SKP，位列全国第二。", grade: "A+", district: "新街口商圈"},
+            {name: "南京中央商场", lat: 32.038694, lng: 118.785311, address: "中山南路79号", desc: "南京第一座综合商场。2023年销售额约70.3亿元，在南京位列第二。", grade: "A+", district: "新街口商圈"},
+            {name: "南京新百中心", lat: 32.040797, lng: 118.785067, address: "中山南路1号", desc: "创建于1952年。2023年销售额55亿元，在南京位列第三。", grade: "A+", district: "新街口商圈"},
+            {name: "新街口金鹰国际购物中心", lat: 32.041429, lng: 118.779772, address: "新街口汉中路89号", desc: "1996年开业的老牌商业项目。2023年销售额约49亿元，在南京位列第四。", grade: "A+", district: "新街口商圈"},
+            {name: "大洋百货", lat: 32.138799, lng: 118.723738, address: "大桥北路48号华东茂C1栋", desc: "", grade: "", district: "桥北商圈"},
+            {name: "东方商城", lat: 32.047938, lng: 118.799953, address: "珠江路517号(浮桥地铁站3A口步行330米)", desc: "", grade: "", district: "新街口商圈"},
+            {name: "IST艾尚天地购物中心", lat: 32.046868, lng: 118.784755, address: "中山路100号凯润金城02幢", desc: "", grade: "", district: "新街口商圈"},
+            {name: "万达商业大厦", lat: 32.044000, lng: 118.785000, address: "汉中路89号", desc: "", grade: "", district: "新街口商圈"},
+            {name: "新街口国际金融中心", lat: 32.041004, lng: 118.783207, address: "汉中路1号(新街口地铁站16号口旁)", desc: "", grade: "", district: "新街口商圈"},
+            {name: "新街口印象汇", lat: 32.038085, lng: 118.786696, address: "洪武路88号(新街口地铁站出入口步行260米)", desc: "", grade: "", district: "新街口商圈"},
+            {name: "新街口苏宁生活广场", lat: 32.036836, lng: 118.786544, address: "淮海路88号苏宁生活广场(新街口店)", desc: "", grade: "", district: "新街口商圈"},
+            {name: "鼓楼吾悦广场", lat: 32.067073, lng: 118.776628, address: "湖北路51号狮子桥步行街对面", desc: "", grade: "", district: "新街口商圈"},
+            {name: "苏宁环球购物中心", lat: 32.069518, lng: 118.777984, address: "湖南路18号", desc: "", grade: "", district: "新街口商圈"},
+
+            // 夫子庙商圈
+            {name: "鹏欣·水游城", lat: 32.023772, lng: 118.785874, address: "建康路1号", desc: "2008年开业，以流动的水为主体，商业场景创意十足。整体品牌构造较为'接地气'，对年轻客群较有吸引力。", grade: "A-", district: "夫子庙商圈"},
+            {name: "南京万象天地", lat: 32.021543, lng: 118.779988, address: "中山南路666号(三山街地铁站1号口旁)", desc: "商业场景独特，由'Mall+街区+古建'组成。2023年销售额约为13亿元。囊括国内外256家品牌，城市'首进'和'定制概念店'占比超过60%。", grade: "A", district: "夫子庙商圈"},
+            {name: "水平方", lat: 32.023549, lng: 118.787141, address: "建康路3号(夫子庙地铁站6号口步行310米)", desc: "", grade: "", district: "夫子庙商圈"},
+            {name: "茂业天地", lat: 32.022330, lng: 118.785500, address: "中华路与建康路交汇处(三山街地铁站出入口步行430米)", desc: "", grade: "", district: "夫子庙商圈"},
+            {name: "南京瞻园奥特莱斯", lat: 32.019073, lng: 118.786886, address: "夫子庙瞻园路9号", desc: "", grade: "", district: "夫子庙商圈"},
+            {name: "京东MALL(南京大明路店)", lat: 31.987528, lng: 118.800522, address: "大明路288号", desc: "", grade: "", district: "夫子庙商圈"},
+            {name: "南京金陵万象城(建设中)", lat: 31.998175, lng: 118.822314, address: "机场大道与祥天路交叉口(大校场地铁站2号口旁)", desc: "", grade: "", district: "夫子庙商圈"},
+            
+            // 元通商圈
+            {name: "南京IFC", lat: 31.993728, lng: 118.721767, address: "江东中路345号", desc: "2024年1月份正式开业。引入LOUIS VUITTON、CHANEL、DioR、GUCCl等一线重奢品牌。紧邻正在建设的河西德基广场。", grade: "A+", district: "元通商圈"},
+            {name: "华采天地", lat: 31.997979, lng: 118.721393, address: "江东中路258号(元通地铁站出入口旁)", desc: "", grade: "", district: "元通商圈"},
+            {name: "龙湖南京河西天街", lat: 31.987983, lng: 118.738082, address: "云龙山路89号河西天街", desc: "", grade: "", district: "元通商圈"},
+            {name: "金源广场", lat: 31.995928, lng: 118.724420, address: "江东中路341号河西中央公园", desc: "", grade: "", district: "元通商圈"},
+            {name: "仁恒里同乐坊", lat: 31.997694, lng: 118.713578, address: "白龙江西街仁恒江湾城二期南门", desc: "", grade: "", district: "元通商圈"},
+            {name: "台湾名品城", lat: 32.000333, lng: 118.718264, address: "燕山路与楠溪江西街交叉口西南80米", desc: "", grade: "", district: "元通商圈"},
+            {name: "华润苏果购物中心", lat: 32.000000, lng: 118.720000, address: "江东中路258号", desc: "", grade: "", district: "元通商圈"},
+            {name: "格玛广场", lat: 31.997927, lng: 118.727091, address: "河西中央商务区庐山路188号新地中心二期一楼", desc: "", grade: "", district: "元通商圈"},
+            
+            // 江东商圈
+            {name: "华新丽华商业广场", lat: 31.999042, lng: 118.722631, address: "江东中路与富春江西街交叉口", desc: "", grade: "", district: "江东商圈"},
+            {name: "巧刻广场CHOC PARK", lat: 32.016156, lng: 118.732704, address: "兴隆大街156号(兴隆大街地铁站2号口步行340米)", desc: "", grade: "", district: "江东商圈"},
+            {name: "南京金鹰世界", lat: 32.023309, lng: 118.740263, address: "应天大街888号", desc: "全球最高的三塔连体建筑之一。总建筑面积91.8万m²，购物中心体量约35万m²。2023年销售额约32亿元。", grade: "A+", district: "江东商圈"},
+            {name: "建邺万达广场", lat: 32.032697, lng: 118.735738, address: "江东中路98号", desc: "于2009年开业，是河西的重要商业'巨舰'。商业总建面高达120万m²，购物中心体量27万m²。", grade: "A", district: "江东商圈"},
+            {name: "建邺吾悦广场", lat: 32.037628, lng: 118.735845, address: "燕山路与汉中门大街交叉口南80米", desc: "", grade: "", district: "江东商圈"},
+            {name: "南京乐基广场", lat: 32.023836, lng: 118.743585, address: "所街169号", desc: "", grade: "", district: "江东商圈"},
+            
+            // 江北商圈
+            {name: "南京江北虹悦城", lat: 32.067162, lng: 118.640030, address: "龙华路1号", desc: "2021年12月底营业，定位为'全时都会生活聚场'。商业体量约10万方。自营500m²的创意剧场，可举办丰富活动。", grade: "A-", district: "江北商圈"},
+            {name: "南京东方万汇城", lat: 32.064395, lng: 118.656840, address: "浦口大道明发财富中心西北侧70米", desc: "", grade: "", district: "江北商圈"},
+            {name: "砂之船奥莱(南京江北新区店)", lat: 32.042223, lng: 118.653417, address: "城南河路93号", desc: "", grade: "", district: "江北商圈"},
+            {name: "宝隆时代广场", lat: 32.054081, lng: 118.638380, address: "江浦街道新浦路", desc: "", grade: "", district: "江北商圈"},
+            {name: "红星美凯龙（江北新区商场）", lat: 32.069849, lng: 118.645858, address: "浦口大道18号(南京工业大学地铁站2号口步行350米)", desc: "", grade: "", district: "江北商圈"},
+            {name: "龙湖南京雨山天街", lat: 32.045163, lng: 118.613656, address: "光明路59号(雨山路地铁站6号口直达)", desc: "", grade: "", district: "江北商圈"},
+            {name: "雨山广场", lat: 32.041997, lng: 118.615301, address: "光明路与建设路交叉口南220米", desc: "", grade: "", district: "江北商圈"},
+            {name: "金浦购物中心", lat: 32.058938, lng: 118.628999, address: "珠江镇文德路3号(文德路地铁站1号口步行220米)", desc: "", grade: "", district: "江北商圈"},
+            
+            // 桥北商圈
+            {name: "南京弘阳广场", lat: 32.137333, lng: 118.726544, address: "大桥北路48号", desc: "商业体量高达55万m²，是南京首个'双Mall+游乐演艺'的超大型文商旅综合体。2023年销售额26亿元，年客流量高达5000万人次，均排在南京TOP10。", grade: "A+", district: "桥北商圈"},
+            {name: "桥北万象汇", lat: 32.124928, lng: 118.730534, address: "江北新区浦珠北路1号万象汇L501号", desc: "", grade: "", district: "桥北商圈"},
+            {name: "南京印象汇", lat: 32.140459, lng: 118.722304, address: "大桥北路58号", desc: "", grade: "", district: "桥北商圈"},
+            {name: "苏尚生活广场", lat: 32.130620, lng: 118.719265, address: "浦外路28号08栋", desc: "", grade: "", district: "桥北商圈"},
+            {name: "太平商场（桥北带店）", lat: 32.132958, lng: 118.730151, address: "大桥北路24号金盛国际家居F1-F4层", desc: "", grade: "", district: "桥北商圈"},
+            {name: "金象城购物中心", lat: 32.127529, lng: 118.736095, address: "江山路8号", desc: "", grade: "", district: "桥北商圈"},
+            {name: "天悦城", lat: 32.151672, lng: 118.733296, address: "百润路9号(天润城地铁站1号口步行60米)", desc: "", grade: "", district: "桥北商圈"},
+            
+            // 百家湖商圈
+            {name: "南京汤山百联奥特莱斯广场", lat: 32.029200, lng: 119.052030, address: "圣汤大道99号(泉都大街地铁站2号口步行360米)", desc: "", grade: "", district: "百家湖商圈"},
+            {name: "景枫中心", lat: 31.929864, lng: 118.820622, address: "双龙大道1698号(百家湖地铁站1号口步行180米)", desc: "购物中心商业体量约11万m²。大力发展首店经济。2023年销售额约37.05亿元，位列南京购物中心第五。", grade: "A+", district: "百家湖商圈"},
+            {name: "江宁金鹰天地", lat: 31.932051, lng: 118.820171, address: "双龙大道1688号(百家湖地铁站2号口步行310米)", desc: "商业体量约13万m²，定位为'全生活中心'。去年销售额约为19亿元。", grade: "A+", district: "百家湖商圈"},
+            {name: "百家湖1912", lat: 31.930832, lng: 118.818167, address: "经济技术开发区双龙大道1680号", desc: "临湖而建，是融合商务社交、休闲游乐的民国风情主题创新街区。大力发展'夜经济'。", grade: "C", district: "百家湖商圈"},
+            {name: "同曦万尚城", lat: 31.942414, lng: 118.822220, address: "双龙大道1351号(胜太路地铁站1号口出口)", desc: "", grade: "", district: "百家湖商圈"},
+            {name: "21世纪太阳城", lat: 31.927059, lng: 118.825244, address: "双龙大道1539号", desc: "", grade: "", district: "百家湖商圈"},
+            {name: "江宁万达广场", lat: 31.951602, lng: 118.843185, address: "竹山路68号", desc: "", grade: "", district: "百家湖商圈"},
+            {name: "龙湖南京龙湾天街", lat: 31.938242, lng: 118.843327, address: "东山街道潭园西路199号", desc: "", grade: "", district: "百家湖商圈"},
+            
+            // 仙林商圈
+            {name: "金鹰湖滨天地", lat: 32.100412, lng: 118.925085, address: "仙林学海路1号", desc: "B区商业综合体和A区奥莱城隔湖相望，通过'湖面栈桥'联通。拥有零售商业、餐饮美食、文创艺术等多元业态。2023年销售额为22亿元。", grade: "B", district: "仙林商圈"},
+            {name: "德基文化艺术高端商业中心", lat: 32.082122, lng: 118.889404, address: "紫气路与东来路交叉口西100米", desc: "", grade: "", district: "仙林商圈"},
+            {name: "南京美糖广场", lat: 32.100383, lng: 118.932523, address: "仙林街道杉湖东路16号", desc: "", grade: "", district: "仙林商圈"},
+            {name: "美居生活广场", lat: 32.096278, lng: 118.910208, address: "文枢东路1号", desc: "", grade: "", district: "仙林商圈"},
+            {name: "爱尚街区购物广场", lat: 32.092185, lng: 118.916837, address: "仙林学衡路1号(学则路地铁站2号口步行70米)", desc: "", grade: "", district: "仙林商圈"},
+            {name: "仙林九霄梦天地", lat: 32.095000, lng: 118.918000, address: "仙林学衡路1号(学则路地铁站2号口步行70米)", desc: "", grade: "", district: "仙林商圈"},
+            {name: "南京东城汇", lat: 32.097537, lng: 118.909043, address: "文苑路8号", desc: "", grade: "", district: "仙林商圈"},
+            {name: "南京万达茂", lat: 32.121490, lng: 118.989691, address: "仙林大道181号", desc: "", grade: "", district: "仙林商圈"},
+            {name: "仙鹤新天地广场", lat: 32.085308, lng: 118.903798, address: "鹤鸣路6号(仙鹤门地铁站1号口步行290米)", desc: "", grade: "", district: "仙林商圈"},
+            
+            // 浦口商圈
+            {name: "南京大悦城", lat: 32.049213, lng: 118.646885, address: "康盛路与东上路交叉口西南180米", desc: "建设中", grade: "", district: "浦口商圈"},
+            {name: "金盛田广场", lat: 32.069748, lng: 118.639324, address: "龙华路8号", desc: "", grade: "", district: "浦口商圈"},
+            {name: "华侨广场", lat: 32.128336, lng: 118.728787, address: "浦口区泰山街道大桥北路1号", desc: "", grade: "", district: "浦口商圈"},
+            {name: "金盛百货(长江路店)", lat: 32.045033, lng: 118.790624, address: "玄武区新街口街道长江路9号", desc: "", grade: "", district: "浦口商圈"},
+            {name: "明发外滩广场", lat: 32.131169, lng: 118.742714, address: "浦口区滨江大道1号明发滨江新城", desc: "", grade: "", district: "浦口商圈"},
+            {name: "金都汇广场", lat: 32.134964, lng: 118.725312, address: "浦口区大桥北路37号", desc: "", grade: "", district: "浦口商圈"},
+            {name: "苏宁环球百货市场", lat: 32.143480, lng: 118.724266, address: "浦口区柳州东路1号", desc: "", grade: "", district: "浦口商圈"},
+            {name: "京新邻里中心", lat: 32.142030, lng: 118.743301, address: "浦口区沿江街道柳洲东路189号", desc: "", grade: "", district: "浦口商圈"},
+            
+            // 玄武商圈
+            {name: "中南魔力月光广场", lat: 32.086237, lng: 118.902980, address: "鹤鸣路8号", desc: "", grade: "", district: "玄武商圈"},
+            
+            // 中央门商圈
+            {name: "南京环宇城", lat: 32.044684, lng: 118.752780, address: "清凉门大街1号", desc: "", grade: "", district: "中央门商圈"},
+            {name: "南京商厦", lat: 32.091004, lng: 118.784947, address: "龙蟠路1号(近中央门立交桥)", desc: "", grade: "", district: "中央门商圈"},
+            {name: "玉桥商业广场", lat: 32.091149, lng: 118.781060, address: "建宁路8号", desc: "", grade: "", district: "中央门商圈"},
+            {name: "金桥广场", lat: 32.091452, lng: 118.778750, address: "建宁路12号", desc: "", grade: "", district: "中央门商圈"},
+            {name: "先锋奥特莱斯商场", lat: 32.087613, lng: 118.783230, address: "中央路417号", desc: "", grade: "", district: "中央门商圈"},
+            {name: "花样年喜年中心", lat: 32.097661, lng: 118.780673, address: "北祥路58号喜年花生唐F1层", desc: "", grade: "", district: "中央门商圈"},
+            {name: "金茂览秀城", lat: 32.072677, lng: 118.783404, address: "中央路201号(玄武门地铁站2号口步行50米)", desc: "", grade: "", district: "中央门商圈"},
+            {name: "华贸中心购物中心", lat: 32.079991, lng: 118.782318, address: "中央路339号(新模范马路地铁站2号口步行390米)", desc: "装修中", grade: "", district: "中央门商圈"},
+            
+            // 迈皋桥商圈
+            {name: "万谷慧生活广场", lat: 32.101771, lng: 118.813534, address: "华电路1号(迈皋桥地铁站4号口步行340米)", desc: "", grade: "", district: "迈皋桥商圈"},
+            {name: "常发广场", lat: 32.085690, lng: 118.810897, address: "红山路88号", desc: "", grade: "", district: "迈皋桥商圈"},
+            {name: "六角广场", lat: 32.080830, lng: 118.810761, address: "玄武大道6号", desc: "", grade: "", district: "迈皋桥商圈"},
+            {name: "彩虹广场", lat: 32.118203, lng: 118.820022, address: "和燕路408号宇业晓庄国际广场", desc: "", grade: "", district: "迈皋桥商圈"},
+            {name: "南京城北万象汇", lat: 32.120701, lng: 118.834890, address: "栖霞大道106-108号", desc: "", grade: "", district: "迈皋桥商圈"},
+            
+            // 六合区商圈
+            {name: "南京六合龙湖天街", lat: 32.328530, lng: 118.843220, address: "古棠大道与桥西路交汇处", desc: "", grade: "", district: "六合区商圈"},
+            {name: "南京欢乐港店(六合万达广场店)", lat: 32.335892, lng: 118.834737, address: "万达广场欢乐港(雄州地铁站4号口步行100米)", desc: "", grade: "", district: "六合区商圈"},
+            
+            // 溧水区商圈
+            {name: "印象南京(南京溧水万达广场店)", lat: 31.626746, lng: 119.047236, address: "万达广场(南京溧水店)(幸庄地铁站5号口步行190米)", desc: "", grade: "", district: "溧水区商圈"},
+            
+            // 高淳区商圈
+            {name: "八佰伴(宝塔路)", lat: 31.324086, lng: 118.876001, address: "宝塔路61号", desc: "", grade: "", district: "高淳区商圈"},
+            
+            // 栖霞区商圈
+            {name: "健康·大融城", lat: 32.048530, lng: 118.894865, address: "中山门大街与东家岗路交叉口东南140米", desc: "", grade: "", district: "栖霞区商圈"},
+            {name: "马群招商花园城", lat: 32.050567, lng: 118.894826, address: "中山门大街699号(马群地铁站3号口步行220米)", desc: "", grade: "", district: "栖霞区商圈"},
+            {name: "新尧金地广场", lat: 32.124332, lng: 118.889030, address: "金尧路22号(尧化门地铁站2号口步行300米)", desc: "", grade: "", district: "栖霞区商圈"},
+            
+            // 雨花台商圈
+            {name: "明发商业广场", lat: 31.977617, lng: 118.797664, address: "玉兰路99号(明发广场地铁站2B口步行300米)", desc: "", grade: "", district: "雨花台商圈"},
+            {name: "南京雨花万象天地", lat: 31.960320, lng: 118.732801, address: "向秀路1号(贾西地铁站1号口步行290米)", desc: "", grade: "", district: "雨花台商圈"},
+            {name: "南京虹悦城", lat: 32.009485, lng: 118.765855, address: "应天大街619号", desc: "", grade: "", district: "雨花台商圈"},
+            {name: "雨花客厅", lat: 31.978904, lng: 118.764440, address: "安德门大街47号8幢2楼14c", desc: "", grade: "", district: "雨花台商圈"},
+            {name: "紫悦广场", lat: 31.979675, lng: 118.761860, address: "安德门大街32号(天隆寺地铁站3号口步行330米)", desc: "", grade: "", district: "雨花台商圈"},
+            {name: "南京证大喜玛拉雅中心", lat: 31.966373, lng: 118.804061, address: "中国江苏省南京市雨花台区南京南站南广场的东南角金阳东街与六朝路交汇处南京南站一楼", desc: "", grade: "", district: "雨花台商圈"},
+            
+            // 高德地图查询新增项目
+            {name: "新世纪广场(科巷)", lat: 32.040141, lng: 118.795239, address: "中山东路370号", desc: "高德地图查询项目", grade: "", district: "新街口商圈"},
+            {name: "CFC生活广场(长发中心店)", lat: 32.039832, lng: 118.797248, address: "中山东路300号(大行宫地铁站出入口步行240米)", desc: "高德地图查询项目", grade: "", district: "新街口商圈"},
+            {name: "太平商场", lat: 32.033359, lng: 118.792798, address: "太平南路279号(常府街地铁站1号口步行90米)", desc: "高德地图查询项目", grade: "", district: "新街口商圈"},
+            {name: "万象都荟商业广场", lat: 31.998071, lng: 118.796944, address: "永乐路16号(卡子门地铁站1号口步行460米)", desc: "高德地图查询项目", grade: "", district: "夫子庙商圈"},
+            {name: "宜家家居(南京商场店)", lat: 31.993698, lng: 118.797188, address: "明匙路99号", desc: "高德地图查询项目", grade: "", district: "夫子庙商圈"},
+            {name: "紫荆广场·花漫里", lat: 31.992320, lng: 118.793732, address: "雨花东路158号", desc: "高德地图查询项目", grade: "", district: "雨花台商圈"},
+            {name: "金隅IN有街市", lat: 31.909540, lng: 118.826803, address: "诚信大道669号", desc: "高德地图查询项目", grade: "", district: "江宁区商圈"},
+            {name: "君达易居生活广场", lat: 31.902060, lng: 118.835081, address: "九竹路58号", desc: "高德地图查询项目", grade: "", district: "江宁区商圈"},
+            {name: "宜悦里G66地下停车场", lat: 31.933963, lng: 118.847174, address: "天元东路15号宜悦里G66(竹山路电子一条街店)", desc: "高德地图查询项目", grade: "", district: "江宁区商圈"},
+            {name: "金宝商业广场(金箔路店)", lat: 31.950176, lng: 118.855965, address: "金箔路188号", desc: "高德地图查询项目", grade: "", district: "江宁区商圈"},
+            {name: "森林摩尔商业街区", lat: 32.038553, lng: 118.866479, address: "中山门大街301号(钟灵街地铁站2A口步行140米)", desc: "高德地图查询项目", grade: "", district: "玄武商圈"},
+            {name: "钟鼎名悦广场", lat: 32.036714, lng: 118.860272, address: "孝陵卫街道中山门大街297号孝陵卫钟鼎山庄西南", desc: "高德地图查询项目", grade: "", district: "玄武商圈"},
+            {name: "君临紫金商业街", lat: 32.037719, lng: 118.850353, address: "中山门大街99号(下马坊地铁站1号口步行70米)", desc: "高德地图查询项目", grade: "", district: "玄武商圈"},
+            {name: "佳源广场", lat: 32.041100, lng: 118.880554, address: "孝陵卫街道顾家营路59号", desc: "高德地图查询项目", grade: "", district: "玄武商圈"},
+            {name: "砂之船奥莱(南京江北新区店)", lat: 32.042223, lng: 118.653417, address: "城南河路93号", desc: "高德地图查询项目", grade: "", district: "江北商圈"},
+            
+            // 高德地图查询新增项目 (2025-10-06 14:06:40)
+            {name: "力朋广场", lat: 32.173190, lng: 118.710291, address: "高新路23号", desc: "高德地图查询项目", grade: "", district: "浦口商圈"},
+            {name: "龙湖南京江北天街", lat: 32.158664, lng: 118.698189, address: "文景路99号(星火路地铁站2号口)", desc: "高德地图查询项目", grade: "", district: "浦口商圈"},
+            {name: "南京蓝宝石广场", lat: 32.160486, lng: 118.707691, address: "高新技术开发区高新路5号", desc: "高德地图查询项目", grade: "", district: "浦口商圈"},
+            {name: "润象汇生活广场", lat: 32.154321, lng: 118.718472, address: "泰冯路59号(泰冯路地铁站6号口步行60米)", desc: "高德地图查询项目", grade: "", district: "浦口商圈"},
+            {name: "鸿利广场", lat: 32.150398, lng: 118.734599, address: "百润路天润城地铁3号线2号出口", desc: "高德地图查询项目", grade: "", district: "浦口商圈"},
+            {name: "浦厦广场", lat: 32.145824, lng: 118.714177, address: "泰西路2号(泰山新村地铁站2号口步行350米)", desc: "高德地图查询项目", grade: "", district: "浦口商圈"},
+            {name: "金辉广场", lat: 32.144395, lng: 118.711150, address: "泰西路42-2号", desc: "高德地图查询项目", grade: "", district: "浦口商圈"},
+            {name: "澳林广场", lat: 32.112713, lng: 118.699832, address: "浦珠北路126号", desc: "高德地图查询项目", grade: "", district: "浦口商圈"},
+            {name: "熙南里", lat: 32.024967, lng: 118.781344, address: "中山南路400号(三山街地铁站2出口)", desc: "高德地图查询项目", grade: "", district: "夫子庙商圈"}
+        ];
+        
+        // 添加商业项目标记
+        nanjing_malls.forEach(function(mall) {
+            const style = districtStyles[mall.district];
+            if (!style) {
+                console.warn(`District "${mall.district}" not found in styles.`);
+                return;
+            }
+
+            var gradeClass = "grade-none";
+            if (mall.grade === "A+") gradeClass = "grade-Aplus";
+            else if (mall.grade === "A") gradeClass = "grade-A";
+            else if (mall.grade === "A-") gradeClass = "grade-Aminus";
+            else if (mall.grade === "B") gradeClass = "grade-B";
+            else if (mall.grade === "C") gradeClass = "grade-C";
+            
+            var popupContent = '<div class="popup-content">' +
+                '<b>' + mall.name + '</b><br>' +
+                '<span class="project-grade ' + gradeClass + '">' + (mall.grade || '未评级') + '</span><br>' +
+                '<b>商圈：</b>' + mall.district + '<br>' +
+                '<b>地址：</b>' + mall.address + '<br>';
+            
+            if (mall.desc) {
+                popupContent += '<b>简介：</b>' + mall.desc;
+            }
+            
+            popupContent += '</div>';
+            
+            L.marker([mall.lat, mall.lng], {icon: style.icon})
+                .addTo(map)
+                .bindPopup(popupContent);
+        });
+        
+        // 添加图例
+        var legend = L.control({position: "bottomright"});
+        legend.onAdd = function (map) {
+            var div = L.DomUtil.create("div", "info legend");
+            let content = "<h4>商圈图例</h4>";
+            for (const key in districtStyles) {
+                const style = districtStyles[key];
+                content += `<i style='background: ${style.color}'></i> ${key}<br>`;
+            }
+            
+            content += "<br><h4>项目等级</h4>" +
+                "<span class='project-grade grade-Aplus'>A+</span> 顶级项目<br>" +
+                "<span class='project-grade grade-A'>A</span> 优秀项目<br>" +
+                "<span class='project-grade grade-Aminus'>A-</span> 良好项目<br>" +
+                "<span class='project-grade grade-B'>B</span> 一般项目<br>" +
+                "<span class='project-grade grade-C'>C</span> 基础项目<br>" +
+                "<span class='project-grade grade-none'>未评级</span> 信息待补充";
+
+            div.innerHTML = content;
+            return div;
+        };
+        legend.addTo(map);
+        
+        // 添加标题
+        var info = L.control({position: "topright"});
+        info.onAdd = function (map) {
+            var div = L.DomUtil.create("div", "info");
+            div.innerHTML = "<h4>南京市重点商业项目分布图 (2025年)</h4>" +
+                "<p>共" + nanjing_malls.length + "个商业项目，涵盖17大商圈</p>" +
+                "<p>点击标记查看详细信息</p>";
+            return div;
+        };
+        info.addTo(map);
+
+        // --- 功能增强代码开始 ---
+
+        // 1. 初始化距离测量控件并移动到控制面板内
+        var measureControl = L.control.measure({
+            position: 'topleft', // 初始位置，后续会移动
+            primaryLengthUnit: 'meters',
+            secondaryLengthUnit: 'kilometers',
+            primaryAreaUnit: 'sqmeters',
+            secondaryAreaUnit: 'hectares',
+            activeColor: '#db4a39',
+            completedColor: '#c85353',
+            localization: 'cn'
+        });
+        measureControl.addTo(map);
+
+        // 页面加载后，将测量工具移动到控制面板中
+        window.addEventListener('load', () => {
+            const measureElement = document.querySelector('.leaflet-control-measure');
+            const radiusControl = document.getElementById('radius-control');
+            const firstElementInPanel = radiusControl.querySelector('.control-header').nextElementSibling;
+
+            if (measureElement && radiusControl && firstElementInPanel) {
+                // 移动控件
+                firstElementInPanel.parentNode.insertBefore(measureElement, firstElementInPanel);
+                
+                // 调整样式以适应新容器
+                measureElement.style.position = 'relative';
+                measureElement.style.top = 'auto';
+                measureElement.style.left = 'auto';
+                measureElement.style.right = 'auto';
+                measureElement.style.margin = '0 0 15px 0';
+                measureElement.style.width = '100%';
+                measureElement.style.boxShadow = 'none';
+            }
+        });
+
+        // 2. 实现半径测量功能
+        let radiusCircles = [];
+        let circleCounter = 1;
+        const circleColors = ['#e74c3c', '#3498db', '#2ecc71', '#f39c12', '#9b59b6', '#e67e22', '#1abc9c', '#34495e'];
+        const radiusButton = document.getElementById('radius-button');
+        const radiusInput = document.getElementById('radius-input');
+        const radiusUnit = document.getElementById('radius-unit');
+        const recordsList = document.getElementById('records-list');
+        const clearAllBtn = document.getElementById('clear-all-btn');
+        const noRecords = document.getElementById('no-records');
+        let isInRadiusMode = false;
+
+        function exitRadiusMode() {
+            if (!isInRadiusMode) {
+                return;
+            }
+            isInRadiusMode = false;
+            map.getContainer().style.cursor = '';
+            const promptDiv = document.getElementById('radius-mode-prompt');
+            if (promptDiv) {
+                promptDiv.remove();
+            }
+        }
+
+        radiusButton.addEventListener('click', function(e) {
+            e.stopPropagation(); // 防止点击按钮时触发地图的点击事件
+            isInRadiusMode = true;
+            map.getContainer().style.cursor = 'crosshair';
+            
+            // 移除可能存在的旧提示
+            let oldPrompt = document.getElementById('radius-mode-prompt');
+            if(oldPrompt) oldPrompt.remove();
+
+            // 创建新的提示
+            let promptDiv = L.DomUtil.create('div', 'info', map.getContainer().parentElement);
+            promptDiv.id = 'radius-mode-prompt';
+            promptDiv.style.position = 'absolute';
+            promptDiv.style.bottom = '30px';
+            promptDiv.style.left = '50%';
+            promptDiv.style.transform = 'translateX(-50%)';
+            promptDiv.style.zIndex = '2000';
+            promptDiv.style.backgroundColor = 'rgba(0, 0, 0, 0.75)';
+            promptDiv.style.color = 'white';
+            promptDiv.style.padding = '8px 15px';
+            promptDiv.style.borderRadius = '30px';
+            promptDiv.innerHTML = '已进入范围查询模式，请在地图上点击一个中心点。';
+        });
+
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape' && isInRadiusMode) {
+                exitRadiusMode();
+            }
+        });
+
+        // 创建范围圆圈函数
+        function createRadiusCircle(latlng, radiusValue, unit) {
+            const radiusInMeters = unit === 'kilometers' ? radiusValue * 1000 : radiusValue;
+            const colorIndex = (circleCounter - 1) % circleColors.length;
+            const color = circleColors[colorIndex];
+            
+            const circle = L.circle(latlng, {
+                radius: radiusInMeters,
+                color: color,
+                weight: 2,
+                fillColor: color,
+                fillOpacity: 0.15
+            }).addTo(map);
+            
+            // 计算范围内的商场
+            const mallsInRange = nanjing_malls.filter(mall => {
+                const mallLatLng = L.latLng(mall.lat, mall.lng);
+                return latlng.distanceTo(mallLatLng) <= radiusInMeters;
+            });
+            
+            const record = {
+                id: circleCounter++,
+                circle: circle,
+                center: latlng,
+                radius: radiusValue,
+                unit: unit,
+                color: color,
+                timestamp: new Date(),
+                mallsCount: mallsInRange.length,
+                malls: mallsInRange
+            };
+            
+            radiusCircles.push(record);
+            
+            // 为圆圈添加右键删除功能
+            circle.on('contextmenu', function(e) {
+                e.originalEvent.preventDefault();
+                if (confirm('确定要删除这个查询记录吗？')) {
+                    removeCircle(record.id);
+                }
+            });
+            
+            // 点击圆圈显示信息
+            circle.on('click', function(e) {
+                if (!isInRadiusMode) {
+                    const mallsList = mallsInRange.length > 0 ? 
+                        mallsInRange.map(m => `• ${m.name} (${m.district})`).join('<br>') : 
+                        '无商场';
+                    
+                    const popupContent = `
+                        <div style="max-width: 250px;">
+                            <b>查询记录 #${record.id}</b><br>
+                            <b>半径：</b>${radiusValue} ${unit === 'kilometers' ? '公里' : '米'}<br>
+                            <b>中心：</b>${latlng.lat.toFixed(4)}, ${latlng.lng.toFixed(4)}<br>
+                            <b>包含商场：</b>${mallsInRange.length} 个<br>
+                            <div style="max-height: 150px; overflow-y: auto; margin-top: 8px; font-size: 12px;">
+                                ${mallsList}
+                            </div>
+                        </div>
+                    `;
+                    
+                    L.popup()
+                        .setLatLng(e.latlng)
+                        .setContent(popupContent)
+                        .openOn(map);
+                }
+            });
+            
+            updateRecordsList();
+            map.fitBounds(circle.getBounds());
+        }
+        
+        // 删除单个圆圈
+        function removeCircle(id) {
+            const index = radiusCircles.findIndex(record => record.id === id);
+            if (index !== -1) {
+                map.removeLayer(radiusCircles[index].circle);
+                radiusCircles.splice(index, 1);
+                updateRecordsList();
+            }
+        }
+        
+        // 清除所有圆圈
+        function clearAllCircles() {
+            radiusCircles.forEach(record => {
+                map.removeLayer(record.circle);
+            });
+            radiusCircles = [];
+            updateRecordsList();
+        }
+        
+        // 更新记录列表
+        function updateRecordsList() {
+            const totalMalls = radiusCircles.reduce((sum, record) => sum + record.mallsCount, 0);
+            const recordsStats = document.getElementById('records-stats');
+            const totalRecordsSpan = document.getElementById('total-records');
+            const totalMallsSpan = document.getElementById('total-malls');
+            
+            if (radiusCircles.length === 0) {
+                noRecords.style.display = 'block';
+                clearAllBtn.style.display = 'none';
+                recordsStats.style.display = 'none';
+                return;
+            }
+            
+            noRecords.style.display = 'none';
+            clearAllBtn.style.display = 'block';
+            recordsStats.style.display = 'block';
+            totalRecordsSpan.textContent = radiusCircles.length;
+            totalMallsSpan.textContent = totalMalls;
+            
+            // 移除旧的记录项
+            const existingItems = recordsList.querySelectorAll('.record-item');
+            existingItems.forEach(item => item.remove());
+            
+            // 添加新的记录项
+            radiusCircles.forEach((record, index) => {
+                const recordDiv = document.createElement('div');
+                recordDiv.className = 'record-item';
+                recordDiv.style.borderLeftColor = record.color;
+                
+                // 构建商场列表
+                const mallsList = record.malls.length > 0 ? 
+                    record.malls.slice(0, 3).map(m => `• ${m.name}`).join('<br>') + 
+                    (record.malls.length > 3 ? `<br>... 还有 ${record.malls.length - 3} 个` : '') 
+                    : '无商场';
+                
+                recordDiv.innerHTML = `
+                    <div class="record-header">
+                        <span class="record-title" style="color: ${record.color};">📍 记录 #${record.id}</span>
+                        <button class="record-delete" onclick="removeCircle(${record.id})">删除</button>
+                    </div>
+                    <div class="record-info">
+                        <strong>半径:</strong> ${record.radius} ${record.unit === 'kilometers' ? '公里' : '米'}<br>
+                        <strong>商场数量:</strong> ${record.mallsCount} 个<br>
+                        <strong>创建时间:</strong> ${record.timestamp.toLocaleTimeString()}<br>
+                        <details style="margin-top: 6px;">
+                            <summary style="cursor: pointer; color: var(--secondary-color); font-weight: 600;">查看包含的商场</summary>
+                            <div style="margin-top: 4px; font-size: 11px; line-height: 1.4;">
+                                ${mallsList}
+                            </div>
+                        </details>
+                    </div>
+                `;
+                recordsList.insertBefore(recordDiv, clearAllBtn);
+            });
+        }
+        
+        // 地图点击事件
+        map.on('click', function(e) {
+            if (!isInRadiusMode) {
+                return;
+            }
+
+            let radius = parseFloat(radiusInput.value);
+            if (isNaN(radius) || radius <= 0) {
+                alert('请输入一个有效的正数作为半径！');
+            } else {
+                createRadiusCircle(e.latlng, radius, radiusUnit.value);
+            }
+
+            // 退出半径模式
+            exitRadiusMode();
+        });
+        
+        // 标签页切换功能
+        const currentTab = document.getElementById('current-tab');
+        const historyTab = document.getElementById('history-tab');
+        let activeTab = 'current';
+        
+        currentTab.addEventListener('click', function() {
+            if (activeTab !== 'current') {
+                currentTab.classList.add('active');
+                historyTab.classList.remove('active');
+                activeTab = 'current';
+                updateRecordsList();
+            }
+        });
+        
+        historyTab.addEventListener('click', function() {
+            if (activeTab !== 'history') {
+                historyTab.classList.add('active');
+                currentTab.classList.remove('active');
+                activeTab = 'history';
+                updateRecordsList();
+            }
+        });
+        
+        // 清除所有记录按钮
+        clearAllBtn.addEventListener('click', function() {
+            if (confirm('确定要清除所有查询记录吗？')) {
+                clearAllCircles();
+            }
+        });
+        
+        // 将函数暴露到全局作用域
+        window.removeCircle = removeCircle;
+
+        // --- 优化后的隐藏/恢复控制面板功能 ---
+        const toggleControlBtn = document.getElementById('toggle-control');
+        const radiusControl = document.getElementById('radius-control');
+
+        // 1. 创建一个恢复按钮，并添加到地图容器的父节点中
+        const showControlBtn = document.createElement('button');
+        showControlBtn.id = 'show-control-btn';
+        showControlBtn.innerHTML = '🗺️ 显示查询工具';
+        showControlBtn.style.position = 'absolute';
+        showControlBtn.style.top = '10px';
+        showControlBtn.style.right = '10px';
+        showControlBtn.style.zIndex = '1001';
+        showControlBtn.style.display = 'none'; // 默认隐藏
+        showControlBtn.style.padding = '10px 15px';
+        showControlBtn.style.backgroundColor = 'var(--primary-color)';
+        showControlBtn.style.color = 'white';
+        showControlBtn.style.border = 'none';
+        showControlBtn.style.borderRadius = 'var(--border-radius)';
+        showControlBtn.style.cursor = 'pointer';
+        showControlBtn.style.fontWeight = '600';
+        showControlBtn.style.boxShadow = 'var(--box-shadow)';
+        showControlBtn.title = '点击以恢复显示范围查询工具面板';
+        map.getContainer().parentElement.appendChild(showControlBtn);
+
+        // 2. 为控制面板内的“隐藏”按钮添加事件监听
+        toggleControlBtn.addEventListener('click', function() {
+            radiusControl.style.display = 'none'; // 完全隐藏控制面板
+            showControlBtn.style.display = 'block'; // 显示恢复按钮
+        });
+
+        // 3. 为地图上的“恢复”按钮添加事件监听
+        showControlBtn.addEventListener('click', function() {
+            radiusControl.style.display = 'flex'; // 恢复控制面板的显示
+            showControlBtn.style.display = 'none'; // 隐藏恢复按钮
+        });
+
+        // --- 窗口拖动功能 ---
+        function makeElementDraggable(element, dragHandle) {
+            let pos1 = 0, pos2 = 0, pos3 = 0, pos4 = 0;
+            
+            dragHandle.onmousedown = dragMouseDown;
+            
+            function dragMouseDown(e) {
+                // 检查点击目标是否为输入框、按钮或其他交互元素
+                if (e.target.tagName === 'INPUT' || e.target.tagName === 'BUTTON' || e.target.tagName === 'SELECT' || e.target.tagName === 'TEXTAREA') {
+                    return; // 如果是交互元素，不触发拖动
+                }
+                
+                e = e || window.event;
+                e.preventDefault();
+                // 获取鼠标初始位置
+                pos3 = e.clientX;
+                pos4 = e.clientY;
+                document.onmouseup = closeDragElement;
+                document.onmousemove = elementDrag;
+            }
+            
+            function elementDrag(e) {
+                e = e || window.event;
+                e.preventDefault();
+                // 计算新位置
+                pos1 = pos3 - e.clientX;
+                pos2 = pos4 - e.clientY;
+                pos3 = e.clientX;
+                pos4 = e.clientY;
+                // 设置元素新位置
+                element.style.top = (element.offsetTop - pos2) + "px";
+                element.style.left = (element.offsetLeft - pos1) + "px";
+                element.style.right = "auto";
+                element.style.bottom = "auto";
+            }
+            
+            function closeDragElement() {
+                // 停止移动
+                document.onmouseup = null;
+                document.onmousemove = null;
+            }
+        }
+        
+        // 使控制面板可拖动，但只在标题栏上拖动
+        const controlHeader = document.querySelector('.control-header');
+        if (controlHeader) {
+            makeElementDraggable(radiusControl, controlHeader);
+        } else {
+            // 如果找不到标题栏，回退到整个面板拖动（但添加交互元素检查）
+            makeElementDraggable(radiusControl, radiusControl);
+        }
+        
+        // 使图例和标题窗口可拖动
+        setTimeout(() => {
+            const legendControl = document.querySelector('.leaflet-control.leaflet-control-legend');
+            const infoControl = document.querySelector('.leaflet-control.leaflet-control-info');
+            
+            if (legendControl) {
+                const legendDiv = legendControl.querySelector('.info');
+                if (legendDiv) {
+                    makeElementDraggable(legendControl);
+                }
+            }
+            
+            if (infoControl) {
+                const infoDiv = infoControl.querySelector('.info');
+                if (infoDiv) {
+                    makeElementDraggable(infoControl);
+                }
+            }
+        }, 100);
+        
+        // “恢复地图初始状态”功能已根据用户要求移除。
+
+
+        // --- 功能增强代码结束 ---
+    </script>
+</body>
+</html>
