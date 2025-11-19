@@ -1,0 +1,883 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <title>厦门市重点购物中心地图 (2025年)</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    
+    <!-- Leaflet & Plugins CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css" />
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet-measure@2.1.7/dist/leaflet-measure.css">
+    
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+
+        :root {
+            --primary-color: #2563eb;
+            --primary-hover: #1d4ed8;
+            --success-color: #10b981;
+            --danger-color: #ef4444;
+            --bg-color: #ffffff;
+            --text-main: #1f2937;
+            --text-light: #6b7280;
+            --border-radius: 12px;
+            --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+            --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+        }
+
+        body, html {
+            margin: 0;
+            padding: 0;
+            height: 100%;
+            width: 100%;
+            font-family: 'Inter', system-ui, -apple-system, sans-serif;
+            background-color: #f3f4f6;
+            overflow: hidden;
+        }
+
+        #map {
+            height: 100%;
+            width: 100%;
+            z-index: 1;
+        }
+
+        /* 通用面板样式 */
+        .panel-card {
+            background: var(--bg-color);
+            border-radius: var(--border-radius);
+            box-shadow: var(--shadow-lg);
+            border: 1px solid rgba(0,0,0,0.05);
+            color: var(--text-main);
+        }
+
+        /* 地图右上角信息框 */
+        .info-panel {
+            padding: 12px 16px;
+            background: rgba(255, 255, 255, 0.95);
+            font-size: 14px;
+            line-height: 1.5;
+            backdrop-filter: blur(4px);
+        }
+        .info-panel h4 {
+            margin: 0 0 8px;
+            font-weight: 700;
+            color: var(--text-main);
+            border-bottom: 2px solid var(--primary-color);
+            padding-bottom: 4px;
+            display: inline-block;
+        }
+
+        /* 图例样式 */
+        .legend {
+            line-height: 1.6;
+            font-size: 13px;
+        }
+        .legend i {
+            width: 16px;
+            height: 16px;
+            float: left;
+            margin-right: 8px;
+            border-radius: 4px;
+            opacity: 0.9;
+        }
+
+        /* 等级标签 */
+        .grade-badge {
+            display: inline-block;
+            padding: 2px 8px;
+            border-radius: 12px;
+            color: white;
+            font-weight: 600;
+            font-size: 11px;
+            margin-right: 5px;
+            text-shadow: 0 1px 2px rgba(0,0,0,0.1);
+        }
+        .grade-Aplus { background-color: #dc2626; }
+        .grade-A { background-color: #ea580c; }
+        .grade-Aminus { background-color: #f59e0b; }
+        .grade-B { background-color: #3b82f6; }
+        .grade-C { background-color: #06b6d4; }
+        .grade-none { background-color: #9ca3af; }
+
+        /* 范围控制面板 */
+        #radius-control {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            width: 300px;
+            max-height: calc(100vh - 40px);
+            z-index: 1000;
+            display: flex;
+            flex-direction: column;
+            padding: 20px;
+            transition: transform 0.3s ease;
+        }
+        
+        .control-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 12px;
+            cursor: move;
+        }
+        .control-title {
+            font-size: 16px;
+            font-weight: 700;
+            margin: 0;
+        }
+        .close-btn {
+            background: none;
+            border: none;
+            color: var(--text-light);
+            cursor: pointer;
+            font-size: 18px;
+            padding: 4px;
+            border-radius: 4px;
+        }
+        .close-btn:hover {
+            background-color: #f3f4f6;
+            color: var(--danger-color);
+        }
+
+        .input-group {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 10px;
+        }
+        input, select {
+            padding: 8px 12px;
+            border: 1px solid #d1d5db;
+            border-radius: 6px;
+            font-family: inherit;
+            font-size: 14px;
+            outline: none;
+        }
+        input:focus, select:focus {
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.1);
+        }
+        .btn-primary {
+            background-color: var(--primary-color);
+            color: white;
+            border: none;
+            padding: 10px;
+            border-radius: 6px;
+            font-weight: 600;
+            cursor: pointer;
+            width: 100%;
+            transition: background 0.2s;
+        }
+        .btn-primary:hover {
+            background-color: var(--primary-hover);
+        }
+
+        /* 记录列表区域 */
+        #records-section {
+            margin-top: 15px;
+            flex-grow: 1;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            border-top: 1px solid #e5e7eb;
+            padding-top: 15px;
+        }
+        .tab-container {
+            display: flex;
+            background: #f3f4f6;
+            padding: 4px;
+            border-radius: 8px;
+            margin-bottom: 10px;
+        }
+        .tab-btn {
+            flex: 1;
+            border: none;
+            background: none;
+            padding: 6px;
+            font-size: 13px;
+            font-weight: 500;
+            color: var(--text-light);
+            border-radius: 6px;
+            cursor: pointer;
+        }
+        .tab-btn.active {
+            background: white;
+            color: var(--primary-color);
+            box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+        }
+        .records-list {
+            overflow-y: auto;
+            flex-grow: 1;
+            padding-right: 4px;
+        }
+        .record-item {
+            background: #f9fafb;
+            border: 1px solid #e5e7eb;
+            border-left-width: 4px;
+            padding: 10px;
+            border-radius: 6px;
+            margin-bottom: 8px;
+            font-size: 13px;
+        }
+        .record-actions {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 4px;
+        }
+        .btn-xs {
+            font-size: 11px;
+            padding: 2px 6px;
+            border-radius: 4px;
+            border: none;
+            cursor: pointer;
+        }
+        .btn-danger { background: #fee2e2; color: #b91c1c; }
+        .btn-danger:hover { background: #fecaca; }
+
+        /* POI 搜索弹窗 */
+        #poi-search-modal {
+            display: none;
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 340px;
+            z-index: 2000;
+            padding: 24px;
+            flex-direction: column;
+        }
+        #poi-results {
+            margin-top: 12px;
+            max-height: 250px;
+            overflow-y: auto;
+            border-top: 1px solid #e5e7eb;
+        }
+        .poi-batch-header {
+            background: #e5e7eb;
+            color: var(--text-main);
+            font-size: 12px;
+            font-weight: 700;
+            padding: 6px 10px;
+            margin-top: 10px;
+            border-radius: 4px;
+        }
+        .poi-item {
+            padding: 10px 0;
+            border-bottom: 1px solid #f3f4f6;
+            font-size: 13px;
+            display: flex;
+            justify-content: space-between;
+        }
+        .poi-item span:last-child { color: var(--text-light); font-size: 12px; }
+
+        /* 地图上的标签样式 */
+        .map-label-base {
+            background-color: rgba(255, 255, 255, 0.95);
+            border: 1px solid rgba(0,0,0,0.1);
+            border-radius: 4px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.15);
+            padding: 2px 6px;
+            white-space: nowrap;
+            color: var(--text-main);
+        }
+        
+        /* 商场标签：更大更醒目 */
+        .mall-label {
+            font-size: 12px;
+            font-weight: 700;
+            z-index: 500;
+        }
+        
+        /* POI标签：稍小一点 */
+        .poi-label {
+            font-size: 11px;
+            font-weight: 500;
+            color: #059669;
+            z-index: 400;
+        }
+
+        .leaflet-tooltip-left.map-label-base::before { border-left-color: rgba(255, 255, 255, 0.95); }
+        .leaflet-tooltip-right.map-label-base::before { border-right-color: rgba(255, 255, 255, 0.95); }
+        .leaflet-tooltip-top.map-label-base::before { border-top-color: rgba(255, 255, 255, 0.95); }
+        .leaflet-tooltip-bottom.map-label-base::before { border-bottom-color: rgba(255, 255, 255, 0.95); }
+
+        .marker-pin {
+            width: 14px;
+            height: 14px;
+            border-radius: 50%;
+            background: #10b981;
+            border: 2px solid white;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+        }
+
+        .popup-search-btn {
+            background: var(--text-main);
+            color: white;
+            border: none;
+            padding: 6px 12px;
+            border-radius: 4px;
+            font-size: 12px;
+            cursor: pointer;
+            margin-top: 8px;
+            width: 100%;
+        }
+        .popup-search-btn:hover { background: black; }
+
+        .leaflet-control-measure {
+            border: none !important;
+            box-shadow: none !important;
+            margin-bottom: 10px !important;
+        }
+        .leaflet-control-measure .leaflet-control-measure-toggle {
+            background-color: #f3f4f6 !important;
+            width: 100% !important;
+            height: 40px !important;
+            background-image: none !important;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 6px !important;
+            color: var(--text-main);
+            font-weight: 600;
+            font-size: 14px;
+            text-decoration: none;
+        }
+        .leaflet-control-measure .leaflet-control-measure-toggle::after {
+            content: "📏 点击启用测量工具";
+            margin-left: 5px;
+        }
+        
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: #d1d5db; border-radius: 3px; }
+        ::-webkit-scrollbar-thumb:hover { background: #9ca3af; }
+    </style>
+</head>
+<body>
+
+    <div id="map"></div>
+
+    <!-- 控制面板 -->
+    <div id="radius-control" class="panel-card">
+        <div class="control-header">
+            <h3 class="control-title">🛠️ 范围查询与分析</h3>
+            <button id="toggle-control" class="close-btn" title="隐藏面板">&times;</button>
+        </div>
+        
+        <!-- 测量工具自动插入此处 -->
+
+        <div style="margin-bottom: 15px;">
+            <label style="font-size: 12px; color: var(--text-light); display: block; margin-bottom: 5px;">建立缓冲区 (分析周边商业密度)</label>
+            <div class="input-group">
+                <input type="number" id="radius-input" value="1.5" min="0.1" step="0.1" placeholder="半径">
+                <select id="radius-unit" style="width: 90px;">
+                    <option value="kilometers">公里</option>
+                    <option value="meters">米</option>
+                </select>
+            </div>
+            <button id="radius-button" class="btn-primary">🎯 点击地图选点分析</button>
+        </div>
+        
+        <div id="records-section">
+            <div class="tab-container">
+                <button class="tab-btn active" id="current-tab">当前结果</button>
+                <button class="tab-btn" id="history-tab">历史记录</button>
+            </div>
+            
+            <div class="records-list" id="records-list">
+                <div style="text-align: center; padding: 20px; color: var(--text-light); font-size: 13px;">
+                    在地图上点击任意位置<br>查看范围内包含的商场
+                </div>
+            </div>
+            
+            <div style="margin-top: 10px; display: flex; gap: 5px; flex-direction: column;">
+                <button class="btn-primary" id="clear-all-btn" style="background: var(--text-light); display: none; font-size: 12px;">清空范围分析</button>
+                <button class="btn-primary" id="clear-poi-btn" style="background: var(--success-color); display: none; font-size: 12px;">🧹 清除所有周边搜索结果 (地图+列表)</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- POI 搜索模态框 -->
+    <div id="poi-search-modal" class="panel-card">
+        <div class="control-header">
+            <span id="poi-modal-title" class="control-title">周边搜索</span>
+            <button id="poi-modal-close-btn" class="close-btn">&times;</button>
+        </div>
+        <div class="input-group">
+            <input type="text" id="poi-keyword-input" placeholder="搜索关键词 (如: 咖啡, 停车场)..." style="width: 100%;">
+        </div>
+        <div style="display: flex; gap: 10px;">
+            <button id="poi-search-btn" class="btn-primary">🔍 叠加搜索</button>
+        </div>
+        <div id="poi-results"></div>
+    </div>
+    
+    <!-- 恢复显示按钮 -->
+    <button id="show-control-btn" class="panel-card" style="position: absolute; top: 10px; right: 10px; z-index: 999; padding: 10px; display: none; border: none; cursor: pointer; font-weight: 600;">
+        🛠️ 打开工具箱
+    </button>
+
+    <!-- Scripts -->
+    <script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/leaflet.chinesetmsproviders@1.0.22/src/leaflet.ChineseTmsProviders.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/leaflet-measure@2.1.7/dist/leaflet-measure.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/leaflet-measure@2.1.7/dist/leaflet-measure.cn.js"></script>
+    
+    <script>
+        var map = L.map("map", {
+            zoomControl: false
+        }).setView([24.49, 118.12], 12);
+        
+        L.control.zoom({ position: 'bottomright' }).addTo(map);
+
+        L.tileLayer.chinaProvider('GaoDe.Normal.Map', {
+            maxZoom: 18,
+            minZoom: 10,
+            attribution: '高德地图'
+        }).addTo(map);
+
+        const districtStyles = {
+            "海沧区": { color: "#e41a1c", name: "海沧区" },
+            "集美区": { color: "#377eb8", name: "集美区" },
+            "同安区": { color: "#4daf4a", name: "同安区" },
+            "思明区": { color: "#ff7f00", name: "思明区" },
+            "翔安区": { color: "#ffd700", name: "翔安区" },
+            "湖里区": { color: "#ffff33", name: "湖里区" }
+        };
+
+        function createColoredIcon(color) {
+            const svgIcon = window.btoa(`
+                <svg width="25" height="41" viewBox="0 0 25 41" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M12.5 0C5.596 0 0 5.596 0 12.5C0 19.404 5.596 25 12.5 25C19.404 25 25 19.404 25 12.5C25 5.596 19.404 0 12.5 0Z" fill="${color}"/>
+                    <path d="M12.5 35.5C18.299 35.5 23 30.799 23 25H2C2 30.799 6.701 35.5 12.5 35.5Z" fill="${color}"/>
+                    <circle cx="12.5" cy="12.5" r="6" fill="#ffffff"/>
+                </svg>
+            `);
+            return L.icon({
+                iconUrl: `data:image/svg+xml;base64,${svgIcon}`,
+                shadowUrl: "https://cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.7/images/marker-shadow.png",
+                iconSize: [25, 41],
+                iconAnchor: [12, 41],
+                popupAnchor: [1, -34],
+                shadowSize: [41, 41]
+            });
+        }
+
+        for (const key in districtStyles) {
+            districtStyles[key].icon = createColoredIcon(districtStyles[key].color);
+        }
+
+        // 完整商场数据
+        var xiamen_malls = [
+            {name: "厦门万象城", lat: 24.472250, lng: 118.111010, address: "湖滨东路99号(湖滨东路地铁站6号口步行60米)", desc: "", grade: "A+", district: "思明区"},
+            {name: "中华城", lat: 24.452752, lng: 118.082665, address: "思明南路195号", desc: "", grade: "A", district: "思明区"},
+            {name: "宝龙一城", lat: 24.485801, lng: 118.172970, address: "金山路1号(岭兜地铁站1A口步行50米)", desc: "", grade: "A", district: "思明区"},
+            {name: "磐基名品中心", lat: 24.481554, lng: 118.120682, address: "莲花路口地铁站1A口步行160米", desc: "", grade: "A", district: "思明区"},
+            {name: "磐基莲花里", lat: 24.484334, lng: 118.127433, address: "莲花北路与嘉莲里交叉口东南100米", desc: "", grade: "A", district: "思明区"},
+            {name: "世茂海峡大厦", lat: 24.435581, lng: 118.088740, address: "演武西路180-188号(厦大医院旁)", desc: "", grade: "A", district: "思明区"},
+            {name: "厦门禹悦汇", lat: 24.467780, lng: 118.113791, address: "厦禾路882-888号", desc: "", grade: "A", district: "思明区"},
+            {name: "罗宾森广场", lat: 24.468932, lng: 118.112681, address: "厦禾路899号", desc: "", grade: "A", district: "思明区"},
+            {name: "天虹购物中心(厦门筼筜店)", lat: 24.491751, lng: 118.113856, address: "莲岳路221号", desc: "", grade: "A-", district: "思明区"},
+            {name: "天虹商场(汇腾店)", lat: 24.491451, lng: 118.127272, address: "嘉禾路323号", desc: "", grade: "A-", district: "思明区"},
+            {name: "汇成商业中心", lat: 24.466493, lng: 118.104231, address: "湖滨中路6号(文灶地铁站2号口旁)", desc: "", grade: "B", district: "思明区"},
+            {name: "福星商业中心", lat: 24.491876, lng: 118.133532, address: "吕岭路120号(江头地铁站2A口步行390米)", desc: "", grade: "B", district: "思明区"},
+            {name: "瑞景商业广场(莲前东路)", lat: 24.475070, lng: 118.159704, address: "莲前东路288号", desc: "", grade: "B", district: "思明区"},
+            {name: "老虎城欢乐购物中心", lat: 24.453026, lng: 118.080980, address: "思明南路中段民盛商厦地下一层", desc: "", grade: "B", district: "思明区"},
+            {name: "加州商业广场", lat: 24.477278, lng: 118.158174, address: "莲前东路123号", desc: "", grade: "B", district: "思明区"},
+            {name: "厦门悦享(中心店)", lat: 24.494703, lng: 118.112998, address: "松岳路8号建发·悦享中心F2层", desc: "", grade: "B", district: "思明区"},
+            {name: "厦门星河COCO Park", lat: 24.474718, lng: 118.189093, address: "展鸿路81-89号", desc: "", grade: "A-", district: "思明区"},
+            {name: "厦门海峡世茂广场", lat: 24.435581, lng: 118.088740, address: "演武西路180-188号", desc: "", grade: "A", district: "思明区"},
+            {name: "厦门航空", lat: 24.468098, lng: 118.167658, address: "前埔六里与前埔南路交叉口西北60米", desc: "", grade: "C", district: "思明区"},
+            {name: "软件园生活广场", lat: 24.484360, lng: 118.176763, address: "岭兜西路623号(岭兜地铁站3号口步行290米)", desc: "", grade: "C", district: "思明区"},
+            {name: "东方时代购物广场", lat: 24.461486, lng: 118.079863, address: "湖滨西路12号", desc: "", grade: "C", district: "思明区"},
+            {name: "思明欢乐颂商场", lat: 24.486296, lng: 118.095641, address: "七星西路3号", desc: "", grade: "C", district: "思明区"},
+            {name: "明发商业广场", lat: 24.478639, lng: 118.123245, address: "莲前西路与嘉禾路交汇处东北角", desc: "", grade: "C", district: "思明区"},
+            {name: "禾祥鑫天地(装修中)", lat: 24.468854, lng: 118.105113, address: "后埭溪路与金榜西四路交叉口西180米", desc: "", grade: "", district: "思明区"},
+            {name: "SM城市广场(厦门湖里店)", lat: 24.500849, lng: 118.126101, address: "嘉禾路468号", desc: "", grade: "A+", district: "湖里区"},
+            {name: "厦门湖里万达广场", lat: 24.504657, lng: 118.177299, address: "仙岳路4666号1F层105号商铺", desc: "", grade: "A", district: "湖里区"},
+            {name: "厦门蔡塘爱琴海购物中心", lat: 24.485380, lng: 118.156300, address: "吕岭路1068号(蔡塘地铁站4B口步行400米)", desc: "", grade: "B", district: "湖里区"},
+            {name: "天虹购物中心(五缘湾店)", lat: 24.509873, lng: 118.160382, address: "金湖路516号", desc: "", grade: "B", district: "湖里区"},
+            {name: "嘉禾新天地", lat: 24.512903, lng: 118.119287, address: "火炬路1号(火炬园地铁站4号口旁)", desc: "", grade: "C", district: "湖里区"},
+            {name: "湾悦城", lat: 24.515630, lng: 118.161623, address: "日圆二里1号", desc: "", grade: "B", district: "湖里区"},
+            {name: "厦门海上世界购物中心", lat: 24.490000, lng: 118.076122, address: "远航路77号厦门海上世界405A", desc: "", grade: "A", district: "湖里区"},
+            {name: "吾悦家居(厦门恒辉商务中心店)", lat: 24.528930, lng: 118.157583, address: "岭下南路77号厦门恒辉商务中心", desc: "", grade: "C", district: "湖里区"},
+            {name: "厦门鹭港", lat: 24.522193, lng: 118.109526, address: "长乐路350号", desc: "", grade: "B", district: "湖里区"},
+            {name: "厦门海沧招商花园城", lat: 24.536560, lng: 117.997334, address: "新景东里200号(地铁2号线新阳大道3号出口)", desc: "", grade: "B", district: "海沧区"},
+            {name: "中建闽泰建设开发有限公司厦门SM马銮湾项目管理部(建设中)", lat: 24.539346, lng: 117.956065, address: "孚莲路与东孚西路交叉口东南约160米", desc: "", grade: "", district: "海沧区"},
+            {name: "西雅图购物中心", lat: 24.493055, lng: 118.028228, address: "马青路与钟林路交汇处(地铁马青路站)", desc: "", grade: "C", district: "海沧区"},
+            {name: "阿罗海城市广场", lat: 24.480404, lng: 118.032116, address: "滨湖北二路70号", desc: "", grade: "C", district: "海沧区"},
+            {name: "厦门尚柏奥特莱斯", lat: 24.621979, lng: 118.072913, address: "华夏路1号", desc: "", grade: "B", district: "集美区"},
+            {name: "厦门大悦城", lat: 24.592382, lng: 118.055468, address: "诚毅中路与杏林湾路交叉口西140米", desc: "", grade: "A-", district: "集美区"},
+            {name: "厦门龙湖集美天街(装修中)", lat: 24.585352, lng: 118.052448, address: "杏锦路辅路与杏北路交叉口南140米", desc: "", grade: "", district: "集美区"},
+            {name: "厦门和美天地", lat: 24.604974, lng: 118.051339, address: "西亭北二路与诚毅大街交叉口西140米", desc: "", grade: "C", district: "集美区"},
+            {name: "万达广场(厦门杏林店)", lat: 24.590956, lng: 118.013908, address: "杏前路262-101号之二", desc: "", grade: "B", district: "集美区"},
+            {name: "iOi MALL", lat: 24.600689, lng: 118.075097, address: "滨水路中五里1号", desc: "", grade: "B", district: "集美区"},
+            {name: "万达广场(厦门集美店)", lat: 24.573357, lng: 118.092658, address: "银江路137号", desc: "", grade: "A-", district: "集美区"},
+            {name: "厦门集美世茂广场", lat: 24.602113, lng: 118.076472, address: "侨英街道滨水中二里32-33号", desc: "", grade: "B", district: "集美区"},
+            {name: "大明广场", lat: 24.592825, lng: 118.052483, address: "立言路与朝旭路交叉口南140米", desc: "", grade: "C", district: "集美区"},
+            {name: "厦门同安宝龙广场", lat: 24.716671, lng: 118.165639, address: "环城南路799号", desc: "", grade: "C", district: "同安区"},
+            {name: "厦门同安爱琴海购物中心", lat: 24.661295, lng: 118.174477, address: "西柯镇智谷东三路8号", desc: "", grade: "B", district: "同安区"},
+            {name: "觅光里", lat: 24.664209, lng: 118.193122, address: "滨海里1号", desc: "", grade: "C", district: "翔安区"}
+        ];
+
+        var allMarkers = [];
+        xiamen_malls.forEach(function(mall) {
+            const style = districtStyles[mall.district] || districtStyles["思明区"];
+            
+            let gradeClass = "grade-none";
+            if (mall.grade === "A+") gradeClass = "grade-Aplus";
+            else if (mall.grade === "A") gradeClass = "grade-A";
+            else if (mall.grade === "A-") gradeClass = "grade-Aminus";
+            else if (mall.grade === "B") gradeClass = "grade-B";
+            else if (mall.grade === "C") gradeClass = "grade-C";
+            
+            const popupContent = `
+                <div style="min-width: 200px;">
+                    <h3 style="margin:0 0 5px; font-size:16px;">${mall.name}</h3>
+                    <div style="margin-bottom:8px;">
+                        <span class="grade-badge ${gradeClass}">${mall.grade || '未评级'}</span>
+                        <span style="color:#666; font-size:12px;">${mall.district}</span>
+                    </div>
+                    <div style="color:#555; font-size:13px; margin-bottom:10px;">${mall.address}</div>
+                    <button class="popup-search-btn" onclick="openPoiSearch(${mall.lat}, ${mall.lng}, '${mall.name}')">🔍 搜周边 (咖啡/停车/美食)</button>
+                </div>
+            `;
+            
+            const marker = L.marker([mall.lat, mall.lng], {icon: style.icon})
+                .addTo(map)
+                .bindPopup(popupContent);
+
+            marker.bindTooltip(mall.name, {
+                permanent: true,
+                direction: 'top',
+                className: 'map-label-base mall-label', 
+                offset: [0, -38]
+            }).closeTooltip();
+
+            allMarkers.push(marker);
+        });
+
+        var info = L.control({position: "topleft"});
+        info.onAdd = function (map) {
+            var div = L.DomUtil.create("div", "panel-card info-panel");
+            div.innerHTML = "<h4>厦门商业地图 2025</h4>" +
+                "<div>共录入 " + xiamen_malls.length + " 个商业体</div>";
+            return div;
+        };
+        info.addTo(map);
+
+        var legend = L.control({position: "bottomleft"});
+        legend.onAdd = function (map) {
+            var div = L.DomUtil.create("div", "panel-card info-panel legend");
+            let content = "<strong>行政区划</strong><br>";
+            for (const key in districtStyles) {
+                content += `<div style='margin-bottom:4px;'><i style='background: ${districtStyles[key].color}'></i> ${key}</div>`;
+            }
+            content += "<hr style='border:0; border-top:1px solid #eee; margin:8px 0;'><strong>项目评级</strong><br>" +
+                "<span class='grade-badge grade-Aplus'>A+</span> 城市级地标<br>" +
+                "<span class='grade-badge grade-A'>A</span> 区域级中心<br>" +
+                "<span class='grade-badge grade-B'>B</span> 社区级中心";
+            div.innerHTML = content;
+            return div;
+        };
+        legend.addTo(map);
+
+        // 5. POI 搜索功能 (叠加模式)
+        const amapApiKey = "c85d0ca7bc7107f785cc9d85cd400637";
+        const poiSearchModal = document.getElementById('poi-search-modal');
+        const poiResultsContainer = document.getElementById('poi-results');
+        const clearPoiBtn = document.getElementById('clear-poi-btn');
+        let poiMarkersLayer = L.layerGroup().addTo(map);
+        let currentSearchCenter = null;
+
+        window.openPoiSearch = function(lat, lng, mallName) {
+            currentSearchCenter = { lat, lng };
+            document.getElementById('poi-modal-title').innerText = `在 ${mallName} 周边查找`;
+            poiSearchModal.style.display = 'flex';
+            // 注意：打开新商场搜索时，您可以选择清空之前的列表，也可以保留。
+            // 如果想保留之前的搜索历史，请注释掉下面这行：
+            // poiResultsContainer.innerHTML = ''; 
+            document.getElementById('poi-keyword-input').focus();
+        }
+
+        document.getElementById('poi-modal-close-btn').onclick = () => poiSearchModal.style.display = 'none';
+
+        // 执行搜索 (叠加逻辑)
+        document.getElementById('poi-search-btn').onclick = async function() {
+            const btn = this;
+            const input = document.getElementById('poi-keyword-input');
+            const keyword = input.value;
+            
+            if (!keyword || !currentSearchCenter) return;
+
+            const originalBtnText = btn.innerText;
+            btn.innerText = "⏳ 搜索中...";
+            btn.disabled = true;
+            
+            const location = `${currentSearchCenter.lng},${currentSearchCenter.lat}`;
+            const url = `https://restapi.amap.com/v3/place/around?key=${amapApiKey}&location=${location}&keywords=${encodeURIComponent(keyword)}&radius=2000&offset=20&page=1&extensions=all`;
+
+            try {
+                const response = await fetch(url);
+                const data = await response.json();
+
+                if (data.status === '1' && data.pois.length > 0) {
+                    // 添加一个分隔标题，标示这批搜索是什么
+                    const header = document.createElement('div');
+                    header.className = 'poi-batch-header';
+                    header.innerText = `🔍 搜索: "${keyword}" (${data.pois.length}个)`;
+                    poiResultsContainer.prepend(header); // 将新结果放前面，或者用 appendChild 放后面
+
+                    displayPoiResults(data.pois);
+                    clearPoiBtn.style.display = 'block';
+                    input.value = ''; // 清空输入框方便下次搜索
+                } else {
+                    alert('未找到相关地点');
+                }
+            } catch (error) {
+                console.error(error);
+                alert('搜索失败，请检查网络');
+            } finally {
+                btn.innerText = originalBtnText;
+                btn.disabled = false;
+            }
+        };
+
+        function displayPoiResults(pois) {
+            const poiIcon = L.divIcon({
+                className: 'custom-div-icon',
+                html: "<div class='marker-pin'></div>",
+                iconSize: [14, 14],
+                iconAnchor: [7, 7]
+            });
+
+            pois.forEach(poi => {
+                const [lng, lat] = poi.location.split(',');
+                const marker = L.marker([lat, lng], { icon: poiIcon }).addTo(poiMarkersLayer);
+                
+                marker.bindPopup(`<b>${poi.name}</b><br><span style='font-size:12px;color:#666'>${poi.address}</span>`);
+                
+                marker.bindTooltip(poi.name, {
+                    permanent: true,
+                    direction: 'top',
+                    className: 'map-label-base poi-label', 
+                    offset: [0, -10]
+                });
+
+                const div = document.createElement('div');
+                div.className = 'poi-item';
+                div.innerHTML = `<span>${poi.name}</span><span>${poi.distance}m</span>`;
+                
+                // 新结果插入到标题之后
+                // 为了简单起见，这里我们直接插到容器最前面（就在标题后面）
+                // 如果使用 appendChild，结果会在列表底部
+                // 这里配合 prepend(header) 使用 insertAfter 逻辑比较复杂，
+                // 简单策略：全部 appendChild 到列表底部，或者全部 insertAdjacentElement
+                
+                // 修正策略：为了视觉清晰，我们将新结果添加到列表 **顶部** (Header已经在顶部了)
+                // 这样用户不用滚动到底部就能看到最新结果
+                if (poiResultsContainer.firstChild && poiResultsContainer.firstChild.className === 'poi-batch-header') {
+                     poiResultsContainer.firstChild.insertAdjacentElement('afterend', div);
+                } else {
+                     poiResultsContainer.appendChild(div);
+                }
+
+                div.onclick = () => {
+                    map.setView([lat, lng], 16);
+                    marker.openPopup();
+                };
+            });
+        }
+
+        // 清除逻辑：同时清除列表和地图
+        clearPoiBtn.onclick = function() {
+            if(confirm('确定要清除所有周边搜索结果吗？')) {
+                poiMarkersLayer.clearLayers(); // 清除地图点
+                poiResultsContainer.innerHTML = ''; // 清除列表
+                clearPoiBtn.style.display = 'none';
+            }
+        };
+
+        var measureControl = L.control.measure({
+            position: 'topleft', 
+            primaryLengthUnit: 'meters', 
+            secondaryLengthUnit: 'kilometers',
+            activeColor: '#2563eb',
+            completedColor: '#1d4ed8',
+            localization: 'cn'
+        });
+        measureControl.addTo(map);
+        
+        setTimeout(() => {
+            const measureContainer = document.querySelector('.leaflet-control-measure');
+            const radiusPanel = document.querySelector('#radius-control .control-header').nextElementSibling;
+            if (measureContainer && radiusPanel) {
+                radiusPanel.parentNode.insertBefore(measureContainer, radiusPanel);
+            }
+        }, 500);
+
+        let radiusCircles = [];
+        let isInRadiusMode = false;
+        const radiusButton = document.getElementById('radius-button');
+        
+        radiusButton.onclick = function(e) {
+            e.stopPropagation();
+            isInRadiusMode = true;
+            map.getContainer().style.cursor = 'crosshair';
+            radiusButton.innerHTML = "🖱️ 请在地图上点击中心点...";
+            radiusButton.style.background = "#f59e0b";
+        };
+
+        map.on('click', function(e) {
+            if (!isInRadiusMode) return;
+            
+            const radiusVal = parseFloat(document.getElementById('radius-input').value);
+            const unit = document.getElementById('radius-unit').value;
+            const radiusInMeters = unit === 'kilometers' ? radiusVal * 1000 : radiusVal;
+
+            createAnalysisCircle(e.latlng, radiusInMeters);
+            
+            isInRadiusMode = false;
+            map.getContainer().style.cursor = '';
+            radiusButton.innerHTML = "🎯 点击地图选点分析";
+            radiusButton.style.background = "";
+        });
+
+        function createAnalysisCircle(latlng, radiusMeters) {
+            const color = '#2563eb';
+            
+            const circle = L.circle(latlng, {
+                radius: radiusMeters,
+                color: color,
+                fillColor: color,
+                fillOpacity: 0.15,
+                weight: 2
+            }).addTo(map);
+
+            const mallsIn = xiamen_malls.filter(m => {
+                return latlng.distanceTo(L.latLng(m.lat, m.lng)) <= radiusMeters;
+            });
+
+            const recordId = Date.now();
+            radiusCircles.push({ id: recordId, circle: circle, center: latlng, radius: radiusMeters, malls: mallsIn });
+
+            updateMallLabelsVisibility();
+            renderRecordsList();
+            
+            document.getElementById('clear-all-btn').style.display = 'block';
+        }
+
+        function updateMallLabelsVisibility() {
+            allMarkers.forEach(marker => {
+                const mLatLng = marker.getLatLng();
+                let inside = false;
+                
+                for (let c of radiusCircles) {
+                    if (c.center.distanceTo(mLatLng) <= c.radius) {
+                        inside = true;
+                        break;
+                    }
+                }
+
+                if (inside) marker.openTooltip();
+                else marker.closeTooltip();
+            });
+        }
+
+        function renderRecordsList() {
+            const list = document.getElementById('records-list');
+            list.innerHTML = '';
+            
+            if (radiusCircles.length === 0) {
+                list.innerHTML = '<div style="text-align:center;padding:20px;color:#999">暂无记录</div>';
+                return;
+            }
+
+            radiusCircles.forEach((record, idx) => {
+                const div = document.createElement('div');
+                div.className = 'record-item';
+                div.style.borderLeftColor = record.malls.length > 0 ? '#10b981' : '#9ca3af';
+                
+                const names = record.malls.map(m => m.name).join(', ');
+                
+                div.innerHTML = `
+                    <div class="record-actions">
+                        <strong>分析 #${idx + 1}</strong>
+                        <button class="btn-xs btn-danger" onclick="removeRecord(${record.id})">删除</button>
+                    </div>
+                    <div style="color:#555; margin-bottom:4px;">半径: ${Math.round(record.radius)}米 | 包含: <b>${record.malls.length}</b> 个</div>
+                    <div style="font-size:11px; color:#666; line-height:1.4;">${names || '无商业项目'}</div>
+                `;
+                list.appendChild(div);
+            });
+        }
+
+        window.removeRecord = function(id) {
+            const idx = radiusCircles.findIndex(r => r.id === id);
+            if (idx > -1) {
+                map.removeLayer(radiusCircles[idx].circle);
+                radiusCircles.splice(idx, 1);
+                updateMallLabelsVisibility();
+                renderRecordsList();
+            }
+            if (radiusCircles.length === 0) document.getElementById('clear-all-btn').style.display = 'none';
+        };
+
+        document.getElementById('clear-all-btn').onclick = function() {
+            radiusCircles.forEach(r => map.removeLayer(r.circle));
+            radiusCircles = [];
+            updateMallLabelsVisibility();
+            renderRecordsList();
+            this.style.display = 'none';
+        };
+
+        const radiusControl = document.getElementById('radius-control');
+        const toggleBtn = document.getElementById('toggle-control');
+        const showBtn = document.getElementById('show-control-btn');
+
+        toggleBtn.onclick = () => {
+            radiusControl.style.transform = 'translateX(120%)';
+            setTimeout(() => {
+                radiusControl.style.display = 'none';
+                showBtn.style.display = 'block';
+            }, 300);
+        };
+
+        showBtn.onclick = () => {
+            showBtn.style.display = 'none';
+            radiusControl.style.display = 'flex';
+            setTimeout(() => radiusControl.style.transform = 'translateX(0)', 10);
+        };
+
+        function makeDraggable(el, handle) {
+            let pos1 = 0, pos2 = 0, pos3 = 0, pos4 = 0;
+            handle.onmousedown = dragMouseDown;
+            function dragMouseDown(e) {
+                if (['INPUT','BUTTON','SELECT'].includes(e.target.tagName)) return;
+                e.preventDefault();
+                pos3 = e.clientX;
+                pos4 = e.clientY;
+                document.onmouseup = closeDragElement;
+                document.onmousemove = elementDrag;
+            }
+            function elementDrag(e) {
+                e.preventDefault();
+                pos1 = pos3 - e.clientX;
+                pos2 = pos4 - e.clientY;
+                pos3 = e.clientX;
+                pos4 = e.clientY;
+                el.style.top = (el.offsetTop - pos2) + "px";
+                el.style.left = (el.offsetLeft - pos1) + "px";
+                el.style.right = 'auto';
+            }
+            function closeDragElement() {
+                document.onmouseup = null;
+                document.onmousemove = null;
+            }
+        }
+        
+        makeDraggable(radiusControl, document.querySelector('.control-header'));
+        makeDraggable(poiSearchModal, document.querySelector('#poi-search-modal .control-header'));
+
+    </script>
+</body>
+</html>
